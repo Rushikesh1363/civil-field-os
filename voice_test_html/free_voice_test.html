@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Civil Field OS - Free Voice Inward Test</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: #f1f5f9;
+        padding: 24px;
+        color: #1e293b;
+      }
+      .container {
+        max-width: 680px;
+        margin: 0 auto;
+        background: #ffffff;
+        padding: 28px;
+        border-radius: 14px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      }
+      h2 {
+        margin-top: 0;
+        color: #182b49;
+      }
+      input,
+      button,
+      textarea,
+      select {
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 12px;
+        padding: 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      .btn-mic {
+        background: #dc2626;
+        color: #ffffff;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        padding: 14px;
+        font-size: 15px;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+      .btn-mic.recording {
+        background: #991b1b;
+        animation: pulse 1s infinite alternate;
+      }
+      @keyframes pulse {
+        from {
+          opacity: 0.7;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .field-card {
+        background: #f8fafc;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 10px;
+        padding: 18px;
+        margin-top: 18px;
+      }
+      .field-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .full-width {
+        grid-column: span 2;
+      }
+      .field-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .field-label {
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: #64748b;
+      }
+      .field-input {
+        background: #ffffff;
+        border: 1px solid #94a3b8;
+        font-weight: 600;
+        color: #182b49;
+        margin-bottom: 0;
+      }
+
+      .json-box {
+        background: #0f172a;
+        color: #38bdf8;
+        padding: 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        line-height: 1.5;
+        margin-top: 8px;
+      }
+      .err-box {
+        background: #fee2e2;
+        border: 1px solid #f87171;
+        color: #b91c1c;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-top: 10px;
+        display: none;
+      }
+      .copy-btn {
+        width: auto;
+        background: #334155;
+        color: #ffffff;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+        float: right;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>🎙️ Voice Inward Parser & JSON Dissector</h2>
+      <p style="font-size: 13px; color: #64748b">
+        Speak delivery details in Marathi, Hindi, or English. Gemini 3.8 Flash
+        dissects and populates all database fields instantly.
+      </p>
+
+      <label style="font-size: 12px; font-weight: bold"
+        >Free Gemini API Key:</label
+      >
+      <input
+        type="password"
+        id="apiKey"
+        placeholder="Paste AI Studio Key (AIzaSy...) here"
+      />
+
+      <button id="micBtn" class="btn-mic" onclick="toggleVoice()">
+        🎤 Tap to Speak (Marathi / Hindi / Hinglish / English)
+      </button>
+
+      <label style="font-size: 12px; font-weight: bold"
+        >Transcribed Speech:</label
+      >
+      <textarea
+        id="rawTranscript"
+        rows="3"
+        placeholder="Spoken audio appears here... or type: उदा. भोसले ट्रान्सपोर्ट कडून १२ ब्रास क्रश सँड आले डंपर MH 12 AB 4580 चलना नंबर ३०१२"
+      ></textarea>
+
+      <button
+        style="
+          background: #1e56a0;
+          color: #ffffff;
+          font-weight: bold;
+          border: none;
+          padding: 12px;
+          cursor: pointer;
+          border-radius: 6px;
+          font-size: 14px;
+        "
+        onclick="extractWithGemini()"
+      >
+        ⚡ Extract & Dissect Form Fields (Free)
+      </button>
+
+      <div
+        id="status"
+        style="font-size: 13px; color: #64748b; margin-top: 8px"
+      ></div>
+      <div id="errBox" class="err-box"></div>
+
+      <!-- Dissected Form Fields Card -->
+      <div class="field-card" id="resultCard" style="display: none">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+          "
+        >
+          <h3 style="margin: 0; font-size: 15px; color: #2e7d32">
+            ✓ Dissected Inward Form (Ready to Review)
+          </h3>
+          <span
+            style="
+              font-size: 11px;
+              background: #dcfce7;
+              color: #166534;
+              padding: 2px 8px;
+              border-radius: 12px;
+              font-weight: bold;
+            "
+            >Auto-Populated</span
+          >
+        </div>
+
+        <div class="field-grid">
+          <div class="field-item full-width">
+            <span class="field-label">Vendor / Supplier Name</span>
+            <input
+              type="text"
+              id="resVendor"
+              class="field-input"
+              placeholder="Vendor Name"
+              oninput="updateLiveJson()"
+            />
+          </div>
+
+          <div class="field-item">
+            <span class="field-label">Material / Description</span>
+            <input
+              type="text"
+              id="resMaterial"
+              class="field-input"
+              placeholder="Material Name"
+              oninput="updateLiveJson()"
+            />
+          </div>
+
+          <div class="field-item">
+            <span class="field-label">Quantity Received</span>
+            <input
+              type="number"
+              id="resQty"
+              class="field-input"
+              placeholder="0"
+              oninput="updateLiveJson()"
+            />
+          </div>
+
+          <div class="field-item">
+            <span class="field-label">Measurement Unit</span>
+            <input
+              type="text"
+              id="resUnit"
+              class="field-input"
+              placeholder="Brass / Bags / MT / Nos"
+              oninput="updateLiveJson()"
+            />
+          </div>
+
+          <div class="field-item">
+            <span class="field-label">Vehicle / Dumper No.</span>
+            <input
+              type="text"
+              id="resVehicle"
+              class="field-input"
+              placeholder="MH 12 ..."
+              oninput="updateLiveJson()"
+            />
+          </div>
+
+          <div class="field-item full-width">
+            <span class="field-label">Challan / Bill No.</span>
+            <input
+              type="text"
+              id="resChallan"
+              class="field-input"
+              placeholder="Challan No."
+              oninput="updateLiveJson()"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Realtime Dissected JSON Display -->
+      <div id="jsonContainer" style="display: none; margin-top: 20px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+          "
+        >
+          <h4 style="margin: 0; color: #0f172a">
+            Dissected JSON Database Payload:
+          </h4>
+          <button class="copy-btn" onclick="copyJson()">📋 Copy JSON</button>
+        </div>
+        <div class="json-box" id="jsonPreview">
+          // Structured JSON will render here
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let recognition;
+      let isRecording = false;
+
+      if (
+        "webkitSpeechRecognition" in window ||
+        "SpeechRecognition" in window
+      ) {
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = "mr-IN"; // Marathi & Hindi bilingual speech engine
+
+        recognition.onresult = (event) => {
+          document.getElementById("rawTranscript").value =
+            event.results[0][0].transcript;
+          toggleVoice();
+          extractWithGemini();
+        };
+
+        recognition.onerror = () => {
+          toggleVoice();
+        };
+      }
+
+      function toggleVoice() {
+        const btn = document.getElementById("micBtn");
+        if (!recognition) {
+          alert("Please use Google Chrome for voice recognition support.");
+          return;
+        }
+        if (!isRecording) {
+          recognition.start();
+          isRecording = true;
+          btn.innerText = "🔴 Listening... Speak clearly now";
+          btn.classList.add("recording");
+        } else {
+          recognition.stop();
+          isRecording = false;
+          btn.innerText =
+            "🎤 Tap to Speak (Marathi / Hindi / Hinglish / English)";
+          btn.classList.remove("recording");
+        }
+      }
+
+      function updateLiveJson() {
+        const payload = {
+          vendor_name: document.getElementById("resVendor").value || null,
+          material_name: document.getElementById("resMaterial").value || null,
+          quantity: document.getElementById("resQty").value
+            ? parseFloat(document.getElementById("resQty").value)
+            : null,
+          unit: document.getElementById("resUnit").value || null,
+          vehicle_no: document.getElementById("resVehicle").value || null,
+          challan_no: document.getElementById("resChallan").value || null,
+          site_name: "Mayfair Grand Heights",
+          logged_at: "2026-10-12T12:50:00Z",
+        };
+        document.getElementById("jsonPreview").innerText = JSON.stringify(
+          payload,
+          null,
+          2,
+        );
+      }
+
+      function copyJson() {
+        const text = document.getElementById("jsonPreview").innerText;
+        navigator.clipboard.writeText(text);
+        alert("JSON copied to clipboard!");
+      }
+
+      async function extractWithGemini() {
+        const apiKey = document.getElementById("apiKey").value.trim();
+        const text = document.getElementById("rawTranscript").value.trim();
+        const status = document.getElementById("status");
+        const errBox = document.getElementById("errBox");
+
+        errBox.style.display = "none";
+
+        if (!apiKey) {
+          alert("Please paste your Gemini API key.");
+          return;
+        }
+        if (!text) {
+          alert("Please speak or type some text first.");
+          return;
+        }
+
+        status.innerText =
+          "Extracting and dissecting fields with Gemini 3.8 Flash...";
+
+        const prompt = `You are a civil engineering site assistant in Maharashtra, India.
+Dissect the following material inward statement (which may be in Marathi, Hindi, English, or Hinglish):
+Statement: "${text}"
+
+Instructions:
+1. Translate Marathi/Hindi numbers into numeric digits (e.g., पन्नास / pannas = 50, शंभर / sau = 100, बारा / baara = 12, वीस = 20).
+2. Clean and standardize vendor names (e.g., "bhosale transport", "jay hanuman", "matoshree suppliers", "chitale bandhu").
+3. Standardize units: "Bags", "Brass", "MT", "Nos", "Cu.M", "Ltr", "Trip".
+4. Output STRICTLY a valid JSON object with no markdown fences, matching this schema:
+{
+  "vendor_name": "string or null",
+  "material_name": "string or null",
+  "quantity": number_or_null,
+  "unit": "string or null",
+  "vehicle_no": "string or null",
+  "challan_no": "string or null"
+}`;
+
+        try {
+          // Using gemini-3.8-flash endpoint
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`;
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: "application/json" },
+            }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok || data.error) {
+            throw new Error(
+              data.error
+                ? data.error.message
+                : `HTTP ${res.status}: ${res.statusText}`,
+            );
+          }
+
+          if (!data.candidates || data.candidates.length === 0) {
+            throw new Error("No response candidates returned by model.");
+          }
+
+          const rawText = data.candidates[0].content.parts[0].text;
+          const parsed = JSON.parse(rawText);
+
+          // Populate interactive inputs
+          document.getElementById("resVendor").value = parsed.vendor_name || "";
+          document.getElementById("resMaterial").value =
+            parsed.material_name || "";
+          document.getElementById("resQty").value =
+            parsed.quantity !== null && parsed.quantity !== undefined
+              ? parsed.quantity
+              : "";
+          document.getElementById("resUnit").value = parsed.unit || "";
+          document.getElementById("resVehicle").value = parsed.vehicle_no || "";
+          document.getElementById("resChallan").value = parsed.challan_no || "";
+
+          // Reveal card and JSON box
+          document.getElementById("resultCard").style.display = "block";
+          document.getElementById("jsonContainer").style.display = "block";
+
+          updateLiveJson();
+          status.innerText =
+            "✓ Successfully extracted and dissected into database format!";
+        } catch (err) {
+          console.error(err);
+          status.innerText = "";
+          errBox.innerText = "API Error: " + err.message;
+          errBox.style.display = "block";
+        }
+      }
+    </script>
+  </body>
+</html>
